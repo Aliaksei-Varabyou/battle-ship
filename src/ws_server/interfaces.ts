@@ -8,7 +8,7 @@ export interface WSRequest {
 export interface WSResponse {
   type: string;
   data: unknown;
-  id: number;
+  id: number | string;
 };
 
 export interface UserResponseData {

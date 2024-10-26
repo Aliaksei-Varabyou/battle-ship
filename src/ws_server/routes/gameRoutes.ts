@@ -1,12 +1,18 @@
-import { TYPE_ATTACK, TYPE_CREATE_GAME, TYPE_FINISH, TYPE_START_GAME, TYPE_TURN } from "../constants";
+import { UserDBType } from "../../db/types";
+import { TYPE_ATTACK, TYPE_CREATE_ROOM, TYPE_FINISH, TYPE_START_GAME, TYPE_TURN, TYPE_UPD_ROOM } from "../constants";
 import { handleServerError } from "../controller";
-import { WSRequest } from "../interfaces";
+import { createRoom } from "../controllers/gameController";
+import { WSRequest, WSResponse } from "../interfaces";
 
-export const handleRequestGame = (request: WSRequest): void => {
+export const handleRequestGame = (request: WSRequest, currentUser: UserDBType | undefined): WSResponse | undefined => {
+  let type: string = '';
+  let gameResponse: any = {};
   try {
     switch (request.type) {
-      case TYPE_CREATE_GAME:
+      case TYPE_CREATE_ROOM:
         console.log('create game');
+        type = TYPE_UPD_ROOM;
+        gameResponse = createRoom(currentUser)
         break;
       case TYPE_START_GAME:
         console.log('start game');
@@ -21,6 +27,13 @@ export const handleRequestGame = (request: WSRequest): void => {
         console.log('finish');
         break;
     }
+    const response: WSResponse = {
+      type,
+      data: JSON.stringify(gameResponse),
+      id: 0,
+    }
+
+    return response;
   } catch (error) {
     handleServerError(request, error);
   }

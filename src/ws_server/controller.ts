@@ -1,30 +1,35 @@
-import { WebSocket } from "ws";
 import { ALL_TYPES, GAME_TYPES, USER_TYPES } from "./constants";
 import { WSRequest, WSResponse } from "./interfaces";
 import { handleRequestAll } from "./routes/allRoutes";
 import { handleRequestGame } from "./routes/gameRoutes";
 import { handleRequestUser } from "./routes/userRoutes";
+import { sendResponse } from ".";
+import { UserDBType } from "../db/types";
+import { MyWebSocket } from "./MyWebSocket";
 
 const logRequest = (request: WSRequest) => {
-  console.log(request.type, '->', request );
+  console.log('\x1b[33m%s\x1b[0m: %s', request.type, '->', request );
 };
 
 const logResponse = (type: string, response: WSResponse) => {
-  console.log(type, '<-', JSON.stringify(response) );
+  console.log('\x1b[35m%s\x1b[0m: %s', type, '<-', JSON.stringify(response) );
 };
 
-export const handleRequest = (ws: WebSocket, message: { toString: () => string; }): WSResponse | undefined => {
-  const request: WSRequest = JSON.parse(message.toString());
+export const handleRequest = (ws: MyWebSocket, request: WSRequest): WSResponse | undefined => {
   logRequest(request);
 
   const type: string = request?.type;
   let response: WSResponse | undefined;
+  const currentUser: UserDBType | undefined = ws.user ?? undefined;
+  console.log('????', currentUser);
 
   if (USER_TYPES.includes(type)) {
     response = handleRequestUser(request);
-    ws.send(JSON.stringify(response));
+    sendResponse(ws, response);
   } else if (GAME_TYPES.includes(type)) {
-    response = handleRequestGame(request);
+    response = handleRequestGame(request, currentUser);
+    console.log('!!!', response);
+    sendResponse(ws, response);
   } else if (ALL_TYPES.includes(type)) {
     response = handleRequestAll(request);
   } else {
