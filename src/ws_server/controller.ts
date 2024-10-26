@@ -1,17 +1,28 @@
+import { WebSocket } from "ws";
 import { ALL_TYPES, GAME_TYPES, USER_TYPES } from "./constants";
-import { WSRequest } from "./interfaces";
+import { WSRequest, WSResponse } from "./interfaces";
 import { handleRequestAll } from "./routes/allRoutes";
 import { handleRequestGame } from "./routes/gameRoutes";
 import { handleRequestUser } from "./routes/userRoutes";
 
-export const handleRequest = (message: { toString: () => string; }): void => {
+const logRequest = (request: WSRequest) => {
+  console.log(request.type, '->', request );
+};
+
+const logResponse = (type: string, response: WSResponse) => {
+  console.log(type, '<-', JSON.stringify(response) );
+};
+
+export const handleRequest = (ws: WebSocket, message: { toString: () => string; }): WSResponse | undefined => {
   const request: WSRequest = JSON.parse(message.toString());
+  logRequest(request);
 
   const type: string = request?.type;
-  let response: unknown;
+  let response: WSResponse | undefined;
 
   if (USER_TYPES.includes(type)) {
     response = handleRequestUser(request);
+    ws.send(JSON.stringify(response));
   } else if (GAME_TYPES.includes(type)) {
     response = handleRequestGame(request);
   } else if (ALL_TYPES.includes(type)) {
@@ -21,7 +32,10 @@ export const handleRequest = (message: { toString: () => string; }): void => {
   }
 
   // ToDo: smth with response here
-  console.log('RESPONSE::', response);
+  if (response) {
+    logResponse(type, response);
+    return response;
+  }
 };
 
 export const handleServerError = (request: WSRequest, error: unknown): void => {

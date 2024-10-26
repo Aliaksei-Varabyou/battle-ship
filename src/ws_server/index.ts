@@ -5,8 +5,7 @@ export const webSocketServer = new WebSocketServer({ port: 3000 });
 
 webSocketServer.on('connection', (ws: WebSocket) => {
   ws.on('message', (message) => {
-    console.log('Received:', message, JSON.parse(message.toString()));
-    handleRequest(message);
+    handleRequest(ws, message);
   });
 
   ws.on('close', () => {

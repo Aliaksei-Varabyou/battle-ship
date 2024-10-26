@@ -1,6 +1,12 @@
 
 export interface WSRequest {
   type: string;
+  data: string;
+  id: number;
+};
+
+export interface WSResponse {
+  type: string;
   data: unknown;
   id: number;
 };

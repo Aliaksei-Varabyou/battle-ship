@@ -1,22 +1,27 @@
-import { UserResponseData, WSRequest } from '../interfaces';
+import { UserResponseData, WSRequest, WSResponse } from '../interfaces';
 import { TYPE_REG } from '../constants';
 import { handleServerError } from '../controller';
 import { regUser } from '../controllers/userController';
 
-export const handleRequestUser = (request: WSRequest): unknown => {
+export const handleRequestUser = (request: WSRequest): WSResponse | undefined => {
   try {
-    let response: UserResponseData;
+    let userResponse: UserResponseData;
 
     if (request.type === TYPE_REG) {
-      response = regUser()
+      userResponse = regUser(JSON.parse(request.data));
     } else {
-      // ToDo: we cannot be here actually
-      response = {
+      // we cannot be here actually
+      userResponse = {
         name: '',
         index: 0,
         error: true,
-        errorText: 'Error here'
+        errorText: 'Smth wrong with User registration happens'
       };
+    }
+    const response: WSResponse = {
+      type: TYPE_REG,
+      data: JSON.stringify(userResponse),
+      id: 0,
     }
 
     return response;
