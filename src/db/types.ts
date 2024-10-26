@@ -12,3 +12,8 @@ export type RoomDBType = {
   roomId: string;
   roomUsers: RoomUser[];
 }
+
+export type WinnerDBType = {
+  name: string;
+  wins: number;
+}

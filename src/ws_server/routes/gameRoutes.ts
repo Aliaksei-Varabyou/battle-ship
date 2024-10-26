@@ -10,9 +10,8 @@ export const handleRequestGame = (request: WSRequest, currentUser: UserDBType | 
   try {
     switch (request.type) {
       case TYPE_CREATE_ROOM:
-        console.log('create game');
         type = TYPE_UPD_ROOM;
-        gameResponse = createRoom(currentUser)
+        gameResponse = [createRoom(currentUser)];
         break;
       case TYPE_START_GAME:
         console.log('start game');

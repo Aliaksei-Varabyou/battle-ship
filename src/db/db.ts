@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { UserDBType, RoomDBType } from "./types";
+import { UserDBType, RoomDBType, WinnerDBType } from "./types";
 import { RoomUser } from '../ws_server/interfaces';
 
 class battleshipDB {
   private users = new Map<string, UserDBType>;
   private rooms = new Map<string, RoomDBType>;
+  private winners = new Map<string, WinnerDBType>;
 
   public createUser = (regUser: any): UserDBType => {
     const password = createHash('sha256').update(regUser.password).digest('hex');
@@ -17,6 +18,11 @@ class battleshipDB {
       wins: 0,
     };
     this.users.set(id, newUser);
+    const newWinner: WinnerDBType = {
+      name: regUser.name,
+      wins: 0,
+    };
+    this.winners.set(regUser.name, newWinner);
     return newUser;
   };
 
@@ -35,6 +41,14 @@ class battleshipDB {
     }
     this.rooms.set(roomId, newRoom);
     return newRoom;
+  };
+
+  public getAllRooms = (): RoomDBType[] => {
+    return [...this.rooms.values()];
+  };
+
+  public getAllWinners = (): WinnerDBType[] => {
+    return [...this.winners.values()];
   };
 
 };
