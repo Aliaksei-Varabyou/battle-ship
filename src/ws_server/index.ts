@@ -1,22 +1,23 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { handleRequest, logResponse } from './controller';
+import { handleRequest } from './controller';
 import { WSRequest, WSResponse } from './interfaces';
-import { db } from '../db/db';
 import { MyWebSocket } from './MyWebSocket';
-import { TYPE_REG, TYPE_UPD_ROOM, TYPE_UPD_WINNERS } from './constants';
 
-export const webSocketServer = new WebSocketServer({ port: 3000 });
+const logRequest = (request: WSRequest) => {
+  console.log('\x1b[33m%s\x1b[0m: %s', request.type, '->', request );
+};
+
+const logResponse = (type: string, response: WSResponse) => {
+  console.log('\x1b[35m%s\x1b[0m: %s', type, '<-', JSON.stringify(response) );
+};
+
+const webSocketServer = new WebSocketServer({ port: 3000 });
 
 webSocketServer.on('connection', (ws: MyWebSocket) => {
   ws.on('message', (message) => {
     const request: WSRequest = JSON.parse(message.toString());
-    handleRequest(ws, request);
-
-    if (request.type === TYPE_REG) {
-      const data = JSON.parse(request.data);
-      const user = db.getUserByName(data.name)
-      ws.user = user;
-    }
+    logRequest(request);
+    handleRequest(ws, request);    
   });
 
   ws.on('close', () => {
@@ -32,26 +33,6 @@ export const sendResponse = async (ws:WebSocket, response: WSResponse | undefine
     ws.send(JSON.stringify(response));
     logResponse(response.type, response);
   }
-};
-
-export const sendUpdateRoom = (ws: MyWebSocket): void => {
-  const data = db.getAllRooms();
-  const response: WSResponse = {
-    type: TYPE_UPD_ROOM,
-    data: JSON.stringify(data),
-    id: 0,
-  }
-  sendResponse(ws, response);
-};
-
-export const sendUpdateWinners = (ws: MyWebSocket): void => {
-  const data = db.getAllWinners();
-  const response: WSResponse = {
-    type: TYPE_UPD_WINNERS,
-    data: JSON.stringify(data),
-    id: 0,
-  }
-  sendResponse(ws, response);
 };
 
 console.log('WebSocketServer started on port 3000');

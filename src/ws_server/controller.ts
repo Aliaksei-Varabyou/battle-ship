@@ -1,45 +1,63 @@
-import { ALL_TYPES, GAME_TYPES, TYPE_CREATE_ROOM, USER_TYPES } from "./constants";
+import { ALL_TYPES, GAME_TYPES, ROOM_TYPES, TYPE_REG, TYPE_UPD_ROOM, TYPE_UPD_WINNERS, USER_TYPES } from "./constants";
 import { WSRequest, WSResponse } from "./interfaces";
-import { handleRequestAll } from "./routes/allRoutes";
 import { handleRequestGame } from "./routes/gameRoutes";
+import { handleRequestRoom } from "./routes/roomRoutes";
 import { handleRequestUser } from "./routes/userRoutes";
-import { sendResponse, sendUpdateRoom, sendUpdateWinners } from ".";
+import { sendResponse } from ".";
 import { UserDBType } from "../db/types";
 import { MyWebSocket } from "./MyWebSocket";
+import { db } from "../db/db";
 
-export const logRequest = (request: WSRequest) => {
-  console.log('\x1b[33m%s\x1b[0m: %s', request.type, '->', request );
-};
-
-export const logResponse = (type: string, response: WSResponse) => {
-  console.log('\x1b[35m%s\x1b[0m: %s', type, '<-', JSON.stringify(response) );
-};
-
-export const handleRequest = async (ws: MyWebSocket, request: WSRequest): Promise<WSResponse | undefined> => {
-  logRequest(request);
+export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
 
   const type: string = request?.type;
   let response: WSResponse | undefined;
   const currentUser: UserDBType | undefined = ws.user ?? undefined;
 
   if (USER_TYPES.includes(type)) {
-    response = handleRequestUser(request);
-    await sendResponse(ws, response);
-    sendUpdateRoom(ws);
-    sendUpdateWinners(ws);
+    response = handleRequestUser(ws, request);
+    sendResponse(ws, response);
+    if (request.type === TYPE_REG) {
+      const data = JSON.parse(request.data);
+      const user = db.getUserByName(data.name)
+      ws.user = user;
+    }
+    sendUpdateRoom();
+    sendUpdateWinners();
+  } else if (ROOM_TYPES.includes(type)) {
+    response = handleRequestRoom(request, currentUser);
+    sendResponse(ws, response);
   } else if (GAME_TYPES.includes(type)) {
     response = handleRequestGame(request, currentUser);
     sendResponse(ws, response);
-    if (type === TYPE_CREATE_ROOM && response) {
-      const room = JSON.parse(response.data);
-      ws.room = room;
-    }
   } else if (ALL_TYPES.includes(type)) {
-    response = handleRequestAll(request);
+    // response = handleRequestAll(request);
   } else {
     // ToDo: server error here
   }
 
+};
+
+export const sendUpdateRoom = (): void => {
+  const data = db.getAllRooms();
+  const response: WSResponse = {
+    type: TYPE_UPD_ROOM,
+    data: JSON.stringify(data),
+    id: 0,
+  }
+  const allWs = db.getAllWebsockets();
+  allWs.forEach((ws) => sendResponse(ws, response));
+};
+
+export const sendUpdateWinners = (): void => {
+  const data = db.getAllWinners();
+  const response: WSResponse = {
+    type: TYPE_UPD_WINNERS,
+    data: JSON.stringify(data),
+    id: 0,
+  }
+  const allWs = db.getAllWebsockets();
+  allWs.forEach((ws) => sendResponse(ws, response));
 };
 
 export const handleServerError = (request: WSRequest, error: unknown): void => {

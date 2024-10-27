@@ -2,13 +2,14 @@ import { UserResponseData, WSRequest, WSResponse } from '../interfaces';
 import { TYPE_REG } from '../constants';
 import { handleServerError } from '../controller';
 import { regUser } from '../controllers/userController';
+import { MyWebSocket } from '../MyWebSocket';
 
-export const handleRequestUser = (request: WSRequest): WSResponse | undefined => {
+export const handleRequestUser = (ws: MyWebSocket, request: WSRequest): WSResponse | undefined => {
   try {
     let userResponse: UserResponseData;
 
     if (request.type === TYPE_REG) {
-      userResponse = regUser(JSON.parse(request.data));
+      userResponse = regUser(ws, JSON.parse(request.data));
     } else {
       // we cannot be here actually
       userResponse = {
