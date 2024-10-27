@@ -17,3 +17,8 @@ export type WinnerDBType = {
   name: string;
   wins: number;
 }
+
+export type GameDBType = {
+  idGame: number | string;
+  idPlayer: number | string;
+}

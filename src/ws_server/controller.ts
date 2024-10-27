@@ -1,5 +1,5 @@
-import { ALL_TYPES, GAME_TYPES, ROOM_TYPES, TYPE_REG, TYPE_UPD_ROOM, TYPE_UPD_WINNERS, USER_TYPES } from "./constants";
-import { WSRequest, WSResponse } from "./interfaces";
+import { ALL_TYPES, GAME_TYPES, ROOM_TYPES, TYPE_ADD_USER_2_ROOM, TYPE_CREATE_GAME, TYPE_REG, TYPE_UPD_ROOM, TYPE_UPD_WINNERS, USER_TYPES } from "./constants";
+import { CreateGameResponseData, WSRequest, WSResponse } from "./interfaces";
 import { handleRequestGame } from "./routes/gameRoutes";
 import { handleRequestRoom } from "./routes/roomRoutes";
 import { handleRequestUser } from "./routes/userRoutes";
@@ -25,8 +25,13 @@ export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
     sendUpdateRoom();
     sendUpdateWinners();
   } else if (ROOM_TYPES.includes(type)) {
-    response = handleRequestRoom(request, currentUser);
-    sendResponse(ws, response);
+    const result = handleRequestRoom(request, currentUser);
+    if (request.type === TYPE_ADD_USER_2_ROOM && result?.createGame) {
+      sendCreateGame(result?.createGame);
+    } else {
+      sendResponse(ws, result?.response);
+    }
+    sendUpdateRoom();
   } else if (GAME_TYPES.includes(type)) {
     response = handleRequestGame(request, currentUser);
     sendResponse(ws, response);
@@ -38,7 +43,7 @@ export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
 
 };
 
-export const sendUpdateRoom = (): void => {
+const sendUpdateRoom = (): void => {
   const data = db.getAllRooms();
   const response: WSResponse = {
     type: TYPE_UPD_ROOM,
@@ -49,7 +54,7 @@ export const sendUpdateRoom = (): void => {
   allWs.forEach((ws) => sendResponse(ws, response));
 };
 
-export const sendUpdateWinners = (): void => {
+const sendUpdateWinners = (): void => {
   const data = db.getAllWinners();
   const response: WSResponse = {
     type: TYPE_UPD_WINNERS,
@@ -60,7 +65,22 @@ export const sendUpdateWinners = (): void => {
   allWs.forEach((ws) => sendResponse(ws, response));
 };
 
+const sendCreateGame = (createGames: Map<string, CreateGameResponseData>): void => {
+  let response: WSResponse = {
+    type: TYPE_CREATE_GAME,
+    data: '',
+    id: 0,
+  }
+  const userIds = Array.from(createGames.keys());
+  const allWsUsers: Map<MyWebSocket, UserDBType> = db.getAllWebsocketsWithUsers();
+  for (const [ws, user] of allWsUsers.entries()) {
+    if (userIds.includes(user.id)) {
+      response.data = JSON.stringify(createGames.get(user.id));
+      sendResponse(ws, response)
+    }
+  }
+};
+
 export const handleServerError = (request: WSRequest, error: unknown): void => {
   console.error('Server Error:', error);
-  // ToDo: ??? do we really need it?
 };

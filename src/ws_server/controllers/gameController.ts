@@ -1,18 +1,10 @@
-// import { db } from "../../db/db";
-// import { UserDBType } from "../../db/types";
-// import { RoomUser, UpdateRoomResponseData } from "../interfaces";
+import { db } from "../../db/db";
+import { CreateGameResponseData, RoomUser } from "../interfaces";
 
-// export const createRoom = (user: UserDBType | undefined): UpdateRoomResponseData => {
-//   let newRoom: UpdateRoomResponseData = {
-//     roomId: '',
-//     roomUsers: [],
-//   };
-//   if (user) {
-//     const roomUser: RoomUser = {
-//       name: user.name,
-//       index: user.id,
-//     }
-//     newRoom = db.createRoom(roomUser);
-//   }
-//   return newRoom;
-// };
+export const createGame = (users: RoomUser[]): Map<string, CreateGameResponseData> => {
+  let createGames = new Map<string, CreateGameResponseData>;
+  users.map(user => {
+    createGames.set(user.index.toString(), db.createGame(user));
+  });
+  return createGames;
+};

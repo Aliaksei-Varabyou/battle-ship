@@ -1,5 +1,5 @@
 import { db } from "../../db/db";
-import { UserDBType } from "../../db/types";
+import { RoomDBType, UserDBType } from "../../db/types";
 import { RoomUser, UpdateRoomResponseData } from "../interfaces";
 
 export const createRoom = (user: UserDBType | undefined): UpdateRoomResponseData => {
@@ -15,4 +15,14 @@ export const createRoom = (user: UserDBType | undefined): UpdateRoomResponseData
     newRoom = db.createRoom(roomUser);
   }
   return newRoom;
+};
+
+export const addUser2Room = (user: UserDBType | undefined, data: any): UpdateRoomResponseData | undefined => {
+  if (user) {
+    const roomUser: RoomUser = {
+      name: user.name,
+      index: user.id,
+    }
+    return db.addUser2Room(data?.indexRoom, roomUser);
+  }
 };

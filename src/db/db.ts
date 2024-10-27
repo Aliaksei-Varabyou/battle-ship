@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { UserDBType, RoomDBType, WinnerDBType } from "./types";
+import { UserDBType, RoomDBType, WinnerDBType, GameDBType } from "./types";
 import { RoomUser } from '../ws_server/interfaces';
 import { MyWebSocket } from '../ws_server/MyWebSocket';
 
@@ -7,6 +7,7 @@ class battleshipDB {
   private users = new Map<string, UserDBType>;
   private rooms = new Map<string, RoomDBType>;
   private winners = new Map<string, WinnerDBType>;
+  private games = new Map<string, GameDBType>
   private users_ws = new Map<MyWebSocket, UserDBType>;
 
   public createUser = (ws: MyWebSocket, regUser: any): UserDBType => {
@@ -46,6 +47,30 @@ class battleshipDB {
     return newRoom;
   };
 
+  public addUser2Room = (roomId: string, newUser: RoomUser): RoomDBType => {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      console.error('Room not found');
+      return this.createRoom(newUser);
+    }
+
+    const userExists = room.roomUsers.some(user => user.index === newUser.index);
+    if (!userExists) {
+      room.roomUsers.push(newUser);
+    }
+    return room;
+  };
+
+  public createGame = (user: RoomUser): GameDBType => {
+    const idGame = randomUUID();
+    const newGame: GameDBType = {
+      idGame,
+      idPlayer: user.index
+    }
+    this.games.set(idGame, newGame);
+    return newGame;
+  };
+
   public getAllRooms = (): RoomDBType[] => {
     return [...this.rooms.values()];
   };
@@ -54,8 +79,12 @@ class battleshipDB {
     return [...this.winners.values()];
   };
 
-  public getAllWebsockets = (): WebSocket[] => {
+  public getAllWebsockets = (): MyWebSocket[] => {
     return [...this.users_ws.keys()];
+  };
+
+  public getAllWebsocketsWithUsers = (): Map<MyWebSocket, UserDBType> => {
+    return this.users_ws;
   };
 
 };
