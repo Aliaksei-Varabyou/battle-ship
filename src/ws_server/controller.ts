@@ -21,6 +21,7 @@ import { MyWebSocket } from "./MyWebSocket";
 import { db } from "../db/db";
 import { handleRequestShip } from "./routes/shipRouter";
 import { addGame2User, getWsMapResponses } from "./controllers/userController";
+import { gameTurn } from "./controllers/gameController";
 
 export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
 
@@ -53,7 +54,9 @@ export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
     if (responses) {
       const mapResponses = getWsMapResponses(responses, 'currentPlayerIndex');
       sendRoomResponse(TYPE_START_GAME, mapResponses);
-      sendRoomResponse(TYPE_TURN, );
+      if (currentUser?.id) {
+        sendRoomResponse(TYPE_TURN, gameTurn(currentUser?.id));
+      }
     }
 
   } else if (GAME_TYPES.includes(type)) {

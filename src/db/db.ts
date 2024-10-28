@@ -155,6 +155,23 @@ class battleshipDB {
     }
   };
 
+  public changeCurrentPlayer = (userId: string): GameDBType | undefined => {
+    const gameId = this.users.get(userId)?.gameId;
+    if (gameId) {
+      const game = this.games.get(gameId);
+      if (game?.idGame) {
+        const players = Array.from(game?.players.keys());
+        const nextPlayer = players[0] === userId ? players[1] : players[0];
+        const updatedGame = {
+          ...game,
+          currentPlayer: nextPlayer,
+        }
+        this.games.set(gameId, updatedGame);
+      }
+      return game;
+    }
+  };
+
   public getAllRooms = (): RoomDBType[] => {
     return [...this.rooms.values()];
   };
