@@ -50,6 +50,11 @@ export interface Ship {
   type: "small" | "medium" | "large" | "huge";
 }
 
+export interface AddShipsRequestData {
+  gameId: number | string;
+  ships: Ship[];
+  indexPlayer: number | string;
+}
 export interface StartGameResponseData {
   ships: Ship[];
   currentPlayerIndex: number | string;

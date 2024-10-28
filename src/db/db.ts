@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { UserDBType, RoomDBType, WinnerDBType, GameDBType } from "./types";
-import { RoomUser } from '../ws_server/interfaces';
+import { RoomUser, Ship } from '../ws_server/interfaces';
 import { MyWebSocket } from '../ws_server/MyWebSocket';
 
 class battleshipDB {
@@ -18,6 +18,7 @@ class battleshipDB {
       name: regUser.name,
       password,
       roomId: '',
+      gameId: '',
       wins: 0,
     };
     this.users.set(id, newUser);
@@ -44,6 +45,13 @@ class battleshipDB {
       roomUsers: [user]
     }
     this.rooms.set(roomId, newRoom);
+    let updatedUser = this.users.get(user.index.toString());
+    if (updatedUser?.id) {
+      this.users.set(user.index.toString(), {
+        ...updatedUser,
+        roomId
+      });
+    }
     return newRoom;
   };
 
@@ -57,6 +65,13 @@ class battleshipDB {
     const userExists = room.roomUsers.some(user => user.index === newUser.index);
     if (!userExists) {
       room.roomUsers.push(newUser);
+      let updatedUser = this.users.get(newUser.index.toString());
+      if (updatedUser?.id) {
+        this.users.set(newUser.index.toString(), {
+          ...updatedUser,
+          roomId
+        });
+      }
     }
     return room;
   };
@@ -65,10 +80,80 @@ class battleshipDB {
     const idGame = randomUUID();
     const newGame: GameDBType = {
       idGame,
-      idPlayer: user.index
+      idPlayer: user.index,
+      ships: [],
+      shipsAdded: false,
     }
     this.games.set(idGame, newGame);
     return newGame;
+  };
+
+  public addShips2Game = (idGame: string, ships: Ship[]): GameDBType | undefined => {
+    let game: GameDBType | undefined = this.games.get(idGame);
+    console.log(9999, idGame, game?.idPlayer);
+    if (ships && idGame && game?.idPlayer) {
+      game = {
+        ...game,
+        ships,
+        shipsAdded: true,
+      }
+      console.log("????");
+      this.games.set(idGame, game);
+    }
+    return game;
+  };
+
+  public addGame2User = (userId: string, gameId: string): void => {
+    const user = this.users.get(userId);
+    if (user?.id) {
+      const updatedUser: UserDBType = {
+        ...user,
+        gameId
+      }
+      this.users.set(userId, updatedUser);
+    }
+  };
+
+  public getUsersIfPlayersReady = (userId: string): boolean | UserDBType[]  => {
+    const firstPlayer = this.users.get(userId);
+    const roomId = firstPlayer?.roomId;
+    let secondPlayer: UserDBType | undefined;
+    let shipsAddedCount = 0;
+    if (roomId) {
+      const room: RoomDBType | undefined = this.rooms.get(roomId);
+      if (room) {
+        room.roomUsers.forEach((user) => {
+          if (user.index !== firstPlayer.id) {
+            secondPlayer = this.users.get(user.index.toString());
+          }
+          const userDb = this.users.get(user.index.toString());
+          if (userDb) {
+            const playerGame = this.games.get(userDb.gameId);
+            if (playerGame?.shipsAdded) shipsAddedCount++;
+          }
+      });
+      }
+    }
+    if (secondPlayer && firstPlayer && shipsAddedCount === 2) {
+      return [
+        firstPlayer,
+        secondPlayer,
+      ];
+    }
+    return false;
+  };
+
+  public getGameShips = (gameId:string): Ship[] | undefined => {
+    const game = this.games.get(gameId.toString());
+    return game?.ships;
+  }
+
+  public getUserShips = (userId: string): Ship[] | undefined => {
+    const user = this.users.get(userId.toString());
+    if (user) {
+      const playerGame = this.games.get(user.gameId);
+      return playerGame?.ships;
+    }
   };
 
   public getAllRooms = (): RoomDBType[] => {
