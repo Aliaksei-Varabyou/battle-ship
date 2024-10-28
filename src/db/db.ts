@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { UserDBType, RoomDBType, WinnerDBType, GameDBType } from "./types";
+import { UserDBType, RoomDBType, WinnerDBType, GameDBType, PlayerDbType } from "./types";
 import { RoomUser, Ship } from '../ws_server/interfaces';
 import { MyWebSocket } from '../ws_server/MyWebSocket';
 
@@ -7,7 +7,7 @@ class battleshipDB {
   private users = new Map<string, UserDBType>;
   private rooms = new Map<string, RoomDBType>;
   private winners = new Map<string, WinnerDBType>;
-  private games = new Map<string, GameDBType>
+  private games = new Map<string, GameDBType>;
   private users_ws = new Map<MyWebSocket, UserDBType>;
 
   public createUser = (ws: MyWebSocket, regUser: any): UserDBType => {
@@ -76,29 +76,37 @@ class battleshipDB {
     return room;
   };
 
-  public createGame = (user: RoomUser): GameDBType => {
+  public createGame = (users: RoomUser[]): GameDBType => {
     const idGame = randomUUID();
+    const players: Map<string, PlayerDbType> = new Map<string, PlayerDbType>;
+    users.forEach(user => {
+      players.set(user.index.toString(), {
+        idPlayer: user.index,
+        ships: [],
+        shipsAdded: false,
+      });
+    });
     const newGame: GameDBType = {
       idGame,
-      idPlayer: user.index,
-      ships: [],
-      shipsAdded: false,
+      players,
+      currentPlayer: users[0].index,
     }
     this.games.set(idGame, newGame);
     return newGame;
   };
 
-  public addShips2Game = (idGame: string, ships: Ship[]): GameDBType | undefined => {
+  public addShips2Game = (idGame: string, indexPlayer: string, ships: Ship[]): GameDBType | undefined => {
     let game: GameDBType | undefined = this.games.get(idGame);
-    console.log(9999, idGame, game?.idPlayer);
-    if (ships && idGame && game?.idPlayer) {
-      game = {
-        ...game,
+    if (ships && idGame && indexPlayer) {
+      let player: PlayerDbType = {
+        idPlayer: indexPlayer,
         ships,
         shipsAdded: true,
       }
-      console.log("????");
-      this.games.set(idGame, game);
+      game?.players.set(indexPlayer, player);
+      if (game?.idGame) {
+        this.games.set(idGame, game);
+      }
     }
     return game;
   };
@@ -116,43 +124,34 @@ class battleshipDB {
 
   public getUsersIfPlayersReady = (userId: string): boolean | UserDBType[]  => {
     const firstPlayer = this.users.get(userId);
-    const roomId = firstPlayer?.roomId;
-    let secondPlayer: UserDBType | undefined;
+    const gameId = firstPlayer?.gameId;
     let shipsAddedCount = 0;
-    if (roomId) {
-      const room: RoomDBType | undefined = this.rooms.get(roomId);
-      if (room) {
-        room.roomUsers.forEach((user) => {
-          if (user.index !== firstPlayer.id) {
-            secondPlayer = this.users.get(user.index.toString());
-          }
-          const userDb = this.users.get(user.index.toString());
-          if (userDb) {
-            const playerGame = this.games.get(userDb.gameId);
-            if (playerGame?.shipsAdded) shipsAddedCount++;
-          }
-      });
+    let users: UserDBType[] = [];
+    if (gameId) {
+      const game = this.games.get(gameId?.toString());
+      if (game) {
+        const players = game.players;
+        Array.from(players.values()).forEach(player => {
+          if (player.shipsAdded) shipsAddedCount++;
+          const user = this.users.get(player.idPlayer.toString());
+          if (user) users.push(user);
+        })
       }
     }
-    if (secondPlayer && firstPlayer && shipsAddedCount === 2) {
-      return [
-        firstPlayer,
-        secondPlayer,
-      ];
+    if (shipsAddedCount === 2) {
+      return users;
     }
     return false;
   };
 
-  public getGameShips = (gameId:string): Ship[] | undefined => {
-    const game = this.games.get(gameId.toString());
-    return game?.ships;
-  }
-
   public getUserShips = (userId: string): Ship[] | undefined => {
-    const user = this.users.get(userId.toString());
+    const user = this.users.get(userId);
     if (user) {
-      const playerGame = this.games.get(user.gameId);
-      return playerGame?.ships;
+      const game = this.games.get(user.gameId);
+      const player = game?.players.get(userId)
+      if (player) {
+        return player?.ships;
+      }
     }
   };
 

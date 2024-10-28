@@ -19,9 +19,14 @@ export type WinnerDBType = {
   wins: number;
 }
 
-export type GameDBType = {
-  idGame: number | string;
+export type PlayerDbType = {
   idPlayer: number | string;
   ships: Ship[];
   shipsAdded: boolean;
+}
+
+export type GameDBType = {
+  idGame: number | string;
+  players: Map<string, PlayerDbType>;
+  currentPlayer: number | string;
 }

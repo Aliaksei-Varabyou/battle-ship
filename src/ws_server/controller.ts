@@ -6,6 +6,7 @@ import {
   TYPE_CREATE_GAME,
   TYPE_REG,
   TYPE_START_GAME,
+  TYPE_TURN,
   TYPE_UPD_ROOM,
   TYPE_UPD_WINNERS,
   USER_TYPES,
@@ -52,6 +53,7 @@ export const handleRequest = (ws: MyWebSocket, request: WSRequest): void => {
     if (responses) {
       const mapResponses = getWsMapResponses(responses, 'currentPlayerIndex');
       sendRoomResponse(TYPE_START_GAME, mapResponses);
+      sendRoomResponse(TYPE_TURN, );
     }
 
   } else if (GAME_TYPES.includes(type)) {
